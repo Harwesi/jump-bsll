@@ -24,7 +24,8 @@ const APEX_BAND          = 190;    // |vy| below this counts as "near apex"
 const JUMP_FORCE         = 1010;   // normal bounce (apex ≈ 220px, ~0.9s per hop)
 const SPRING_FORCE       = 1520;   // spring bounce (≈ 2.2x higher)
 const MAX_FALL_SPEED     = 1400;
-const BALL_R             = 16;
+const BALL_R             = 22;     // bigger than a plain dot so the logo stays readable
+const BALL_TILT          = 0.5;    // max tilt (radians) of the logo while moving sideways; 0 = no tilt
 
 // --- Horizontal control ---
 const MOVE_ACCEL         = 3000;   // px/s² while a direction is held
@@ -271,7 +272,7 @@ let lastTime = null;
 let trailAcc = 0;
 let spawner = null;
 
-const ball = { x: WORLD_W / 2, y: 0, vx: 0, vy: 0, sx: 1, sy: 1, svx: 0, svy: 0, visible: true };
+const ball = { x: WORLD_W / 2, y: 0, vx: 0, vy: 0, sx: 1, sy: 1, svx: 0, svy: 0, rot: 0, visible: true };
 const platforms = [];
 const coins = [];
 const particles = [];
@@ -389,7 +390,7 @@ function resetWorld() {
   camY = camOrigin;
   spawner = { topY: 0, lastX: WORLD_W / 2, lastType: 'normal', count: 0 };
   platforms.push(makePlatform(WORLD_W / 2 - 150, 0, 300, 'normal'));
-  Object.assign(ball, { x: WORLD_W / 2, y: -BALL_R - 80, vx: 0, vy: 0, sx: 1, sy: 1, svx: 0, svy: 0, visible: true });
+  Object.assign(ball, { x: WORLD_W / 2, y: -BALL_R - 80, vx: 0, vy: 0, sx: 1, sy: 1, svx: 0, svy: 0, rot: 0, visible: true });
   highest = -BALL_R; coinsGot = 0; nextMilestone = MILESTONE_M; shake = 0; trailAcc = 0;
   introFade = 1;
   ensureSpawn();
@@ -438,7 +439,7 @@ function breakFx(p) {
   }
 }
 function burstBall(x, y) {
-  const cols = ['#ffb347', '#ff6a3d', '#fff1c9', '#ffd27a'];
+  const cols = ballImgReady ? ['#c6ff00', '#ffffff', '#e8ff7a', '#9be000'] : ['#ffb347', '#ff6a3d', '#fff1c9', '#ffd27a'];
   for (let i = 0; i < 26; i++) {
     const a = rand(0, TAU), sp = rand(120, 520);
     addParticle({ kind: 'dot', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 120, g: 800, drag: 0.6, life: rand(0.5, 1), size: rand(2.5, 6), color: cols[i % cols.length] });
@@ -571,6 +572,7 @@ function stepBall(h) {
 
 function updateSquash(dt) {
   const b = ball;
+  b.rot += (clamp(b.vx / MAX_SPEED, -1, 1) * BALL_TILT - b.rot) * damp(9, dt);   // logo leans into the move
   const st = clamp(Math.abs(b.vy) / 4000, 0, 0.38);   // stretch grows with speed
   const ty = 1 + st, tx = 1 / Math.sqrt(ty);          // roughly volume-preserving
   b.svy += ((ty - b.sy) * SQ_K - b.svy * SQ_D) * dt; b.sy += b.svy * dt;
@@ -695,6 +697,15 @@ const GLOW_COLORS = {
   red: [255, 80, 100], warm: [255, 170, 70], pink: [255, 120, 220], violet: [160, 110, 255], gold: [255, 210, 80],
 };
 const glow = {};
+
+// Ball skin: ball.png (the logo). If it can't load, the orange ball with eyes is drawn instead.
+let ballImgReady = false;
+const ballImg = typeof Image !== 'undefined' ? new Image() : null;
+if (ballImg) {
+  ballImg.onload = () => { ballImgReady = true; };
+  ballImg.src = 'ball.png';
+}
+
 function buildGlows() {
   for (const k in GLOW_COLORS) {
     const [r, g, b] = GLOW_COLORS[k];
@@ -895,6 +906,22 @@ function drawBallAt(x, y, t) {
   ctx.save();
   ctx.translate(x, y + BALL_R);              // anchor at the feet so squash stays grounded
   ctx.scale(b.sx, b.sy);
+  if (ballImgReady) {
+    drawGlow('lime', 0, -BALL_R, BALL_R * 4.4, BALL_R * 4.4, 0.34);
+    ctx.save();                                   // logo, clipped to a circle
+    ctx.beginPath(); ctx.arc(0, -BALL_R, BALL_R, 0, TAU); ctx.clip();
+    ctx.translate(0, -BALL_R); ctx.rotate(b.rot);
+    ctx.drawImage(ballImg, -BALL_R * 1.04, -BALL_R * 1.04, BALL_R * 2.08, BALL_R * 2.08);
+    ctx.restore();
+    const sg = ctx.createRadialGradient(-BALL_R * 0.35, -BALL_R * 1.4, BALL_R * 0.1, 0, -BALL_R, BALL_R * 1.1);   // sphere shading
+    sg.addColorStop(0, 'rgba(255,255,255,0.38)'); sg.addColorStop(0.45, 'rgba(255,255,255,0)'); sg.addColorStop(1, 'rgba(25,50,0,0.4)');
+    ctx.fillStyle = sg;
+    ctx.beginPath(); ctx.arc(0, -BALL_R, BALL_R, 0, TAU); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(0, -BALL_R, BALL_R - 0.75, 0, TAU); ctx.stroke();
+    ctx.restore();
+    return;
+  }
   drawGlow('warm', 0, -BALL_R, BALL_R * 4.4, BALL_R * 4.4, 0.32);
   const g = ctx.createRadialGradient(-BALL_R * 0.35, -BALL_R * 1.4, BALL_R * 0.12, 0, -BALL_R, BALL_R * 1.15);
   g.addColorStop(0, '#fff1c9'); g.addColorStop(0.38, '#ffb347'); g.addColorStop(1, '#f0562f');
@@ -919,7 +946,7 @@ function drawBall(t) {
   const n = trail.length;
   for (let i = 0; i < n; i++) {
     const q = trail[i], f = (i + 1) / n;
-    ctx.fillStyle = `rgba(255,150,70,${0.26 * f * f})`;
+    ctx.fillStyle = `rgba(${ballImgReady ? '200,255,0' : '255,150,70'},${0.26 * f * f})`;
     ctx.beginPath(); ctx.arc(q.x, q.y, BALL_R * (0.3 + 0.62 * f), 0, TAU); ctx.fill();
   }
   // contact shadow on the platform below
