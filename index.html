@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#1b1464">
+  <title>Endless Jumper</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="game">
+    <canvas id="canvas" aria-label="Endless Jumper game area"></canvas>
+    <div class="vignette"></div>
+
+    <!-- In-game HUD -->
+    <header id="hud" class="hud" aria-live="off">
+      <div class="hud-left">
+        <span class="label">Height</span>
+        <span class="value"><span id="hudHeight">0</span><span class="unit">m</span></span>
+        <span id="hudCoinChip" class="coin-chip"><i class="coin-dot"></i><span id="hudCoins">0</span></span>
+      </div>
+      <div class="hud-right">
+        <span class="label">Best</span>
+        <span class="best"><span id="hudBest">0</span> m</span>
+      </div>
+    </header>
+
+    <button id="muteBtn" class="icon-btn" type="button" aria-label="Toggle sound" title="Sound (M)">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z" fill="currentColor" stroke="none"/>
+        <g class="waves"><path d="M15.5 9a4.2 4.2 0 0 1 0 6"/><path d="M18 6.5a8 8 0 0 1 0 11"/></g>
+        <path class="slash" d="M16 9.5l5 5M21 9.5l-5 5"/>
+      </svg>
+    </button>
+
+    <div id="toast" class="toast" aria-hidden="true"></div>
+
+    <!-- Start screen -->
+    <section id="startScreen" class="screen show">
+      <h1 class="title"><span>Endless</span><span>Jumper</span></h1>
+      <p class="prompt">Press Space / Tap to start</p>
+      <p class="hint"><span class="kbd-only">← → or A / D to move</span><span class="touch-only">Touch left / right half to steer</span></p>
+    </section>
+
+    <!-- Game over -->
+    <section id="gameOverScreen" class="screen over">
+      <p class="eyebrow">Game over</p>
+      <p class="big-score"><span id="goScore">0</span><span class="unit">m</span></p>
+      <p id="goBadge" class="badge">New best!</p>
+      <div class="stats">
+        <div><span class="label">Best</span><strong><span id="goBest">0</span> m</strong></div>
+        <div><span class="label">Coins</span><strong><i class="coin-dot"></i> <span id="goCoins">0</span></strong></div>
+      </div>
+      <button id="restartBtn" class="btn" type="button">Play again</button>
+      <p class="hint"><span class="kbd-only">or press Space</span></p>
+    </section>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>
